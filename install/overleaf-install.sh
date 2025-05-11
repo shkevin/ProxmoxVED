@@ -8,15 +8,15 @@ network_check
 update_os
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-  curl \
-  sudo \
-  mc \
-  apt-transport-https \
-  ca-certificates \
-  gnupg \
-  lsb-release \
-  git \
-  python3-pip
+    curl \
+    sudo \
+    mc \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    git \
+    python3-pip
 msg_ok "Installed Dependencies"
 msg_info "Installing Docker"
 $STD curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg

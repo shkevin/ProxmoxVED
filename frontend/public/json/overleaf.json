@@ -1,40 +1,40 @@
 {
-  "name": "Overleaf",
-  "slug": "overleaf",
-  "categories": [
-    "Editor",
-    "Document",
-    "Latex"
-  ],
-  "date_created": "2025-05-11",
-  "type": "ct",
-  "updateable": true,
-  "privileged": false,
-  "interface_port": 3000,
-  "documentation": "https://github.com/overleaf/overleaf/wiki",
-  "website": "https://www.overleaf.com/",
-  "logo": "https://images.ctfassets.net/nrgyaltdicpt/6gsvc5Ogjmu04I4Miu0uGg/cb1d4391717d2ab8d5e42ede6fb0eef1/overleaf_wide_colour_light_bg.svg",
-  "description": "Overleaf is an online collaborative LaTeX editor used for writing, editing and publishing scientific documents. It supports in-browser editing and publishing with real-time collaboration and preview.",
-  "install_methods": [
-    {
-      "type": "default",
-      "script": "ct/overleaf.sh",
-      "resources": {
-        "cpu": 2,
-        "ram": 2048,
-        "hdd": 4,
-        "os": "debian",
-        "version": "12"
-      }
-    }
-  ],
-  "default_credentials": {
-    "username": "admin@overleaf.com",
-    "password": "User-created during first login"
-  },
-  "notes": [
-    "Access via: http://YOUR_IP:3000",
-    "Default admin email: admin@overleaf.com",
-    "Create an admin account on first login"
-  ]
+    "name": "Overleaf",
+    "slug": "overleaf",
+    "categories": [
+        "Editor",
+        "Document",
+        "Latex"
+    ],
+    "date_created": "2025-05-11",
+    "type": "ct",
+    "updateable": true,
+    "privileged": false,
+    "interface_port": 3000,
+    "documentation": "https://github.com/overleaf/overleaf/wiki",
+    "website": "https://www.overleaf.com/",
+    "logo": "https://images.ctfassets.net/nrgyaltdicpt/6gsvc5Ogjmu04I4Miu0uGg/cb1d4391717d2ab8d5e42ede6fb0eef1/overleaf_wide_colour_light_bg.svg",
+    "description": "Overleaf is an online collaborative LaTeX editor used for writing, editing and publishing scientific documents. It supports in-browser editing and publishing with real-time collaboration and preview.",
+    "install_methods": [
+        {
+            "type": "default",
+            "script": "ct/overleaf.sh",
+            "resources": {
+                "cpu": 2,
+                "ram": 2048,
+                "hdd": 4,
+                "os": "debian",
+                "version": "12"
+            }
+        }
+    ],
+    "default_credentials": {
+        "username": "admin@overleaf.com",
+        "password": "User-created during first login"
+    },
+    "notes": [
+        "Access via: http://YOUR_IP:3000",
+        "Default admin email: admin@overleaf.com",
+        "Create an admin account on first login"
+    ]
 }
