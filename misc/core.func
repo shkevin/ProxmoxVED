@@ -1,5 +1,5 @@
 # Copyright (c) 2021-2025 community-scripts ORG
-# License: MIT | https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/LICENSE
+# License: MIT | https://raw.githubusercontent.com/shkevin/ProxmoxVED/overleaf-support/LICENSE
 
 set -euo pipefail
 SPINNER_PID=""

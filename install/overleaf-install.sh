@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+# Copyright (c) 2021-2025 community-scripts ORG
+# Author: Kevin Cox (shkevin)
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
+# Source: https://github.com/overleaf/overleaf
+
+# Import Proxmox Community Script Functions
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
 verb_ip6
@@ -6,84 +12,147 @@ catch_errors
 setting_up_container
 network_check
 update_os
+
+# Application Constants
+APP="Overleaf"
+APP_DIR="/opt/overleaf"
+VERSION_FILE="/opt/${APP}_version.txt"
+TMP_DIR="/tmp/overleaf-install"
+
+# Ensure base directories
+mkdir -p "$TMP_DIR" "$APP_DIR"
+
+# Install Dependencies
 msg_info "Installing Dependencies"
 $STD apt-get install -y \
-    curl \
-    sudo \
-    mc \
-    apt-transport-https \
-    ca-certificates \
-    gnupg \
-    lsb-release \
+    build-essential \
+    wget \
+    net-tools \
+    unzip \
+    time \
+    imagemagick \
+    optipng \
+    strace \
+    nginx \
     git \
-    python3-pip
+    python3 \
+    python-is-python3 \
+    zlib1g-dev \
+    libpcre3-dev \
+    gettext-base \
+    libwww-perl \
+    ca-certificates \
+    curl \
+    gnupg \
+    qpdf \
+    logrotate \
+    cron \
+    runit
 msg_ok "Installed Dependencies"
-msg_info "Installing Docker"
-$STD curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
-$STD apt-get update
-$STD apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-systemctl enable -q --now docker
-msg_ok "Installed Docker"
-msg_info "Installing Docker Compose"
-$STD curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
-msg_ok "Installed Docker Compose"
-msg_info "Setup Overleaf"
-mkdir -p /opt/overleaf
-cd /opt/overleaf
-RELEASE=$(curl -fsSL https://api.github.com/repos/overleaf/toolkit/releases/latest | grep "tag_name" | awk '{print substr($2, 2, length($2)-3) }')
-git clone https://github.com/overleaf/toolkit.git /opt/overleaf/toolkit
-cd /opt/overleaf/toolkit
-mkdir -p config/
-cat >config/overleaf.rc <<EOF
-SERVER_PRO=false
-PROJECT_NAME=overleaf
-OVERLEAF_DATA_PATH=/opt/overleaf/data
-OVERLEAF_PORT=3000
-MONGO_URL=mongodb://mongo/sharelatex
-REDIS_HOST=redis
-REDIS_PORT=6379
+
+# Install MongoDB and Redis
+msg_info "Installing MongoDB"
+MONGODB_VERSION="6.0" install_mongodb
+msg_ok "Installed MongoDB"
+
+msg_info "Installing Redis"
+$STD apt-get install -y redis-server
+systemctl enable -q --now redis-server
+msg_ok "Installed Redis"
+
+# Install Node.js and pnpm
+msg_info "Installing Node.js and pnpm"
+NODE_VERSION="22" NODE_MODULE="pnpm@latest" install_node_and_modules
+msg_ok "Installed Node.js and pnpm"
+
+# Install TeXLive basic
+msg_info "Installing TeXLive"
+TEXLIVE_MIRROR="https://mirror.ox.ac.uk/sites/ctan.org/systems/texlive/tlnet"
+cd "$TMP_DIR"
+wget -q "${TEXLIVE_MIRROR}/install-tl-unx.tar.gz"
+tar -xzf install-tl-unx.tar.gz --strip-components=1 -C install-tl-unx
+cat <<EOF >texlive.profile
+selected_scheme scheme-basic
+tlpdbopt_autobackup 0
+tlpdbopt_install_docfiles 0
+tlpdbopt_install_srcfiles 0
 EOF
-cat >config/variables.env <<EOF
-OVERLEAF_MONGO_URL=mongodb://mongo/sharelatex
-OVERLEAF_REDIS_HOST=redis
-OVERLEAF_REDIS_PORT=6379
-OVERLEAF_APP_NAME=Overleaf Community Edition
-OVERLEAF_SITE_URL=http://localhost:3000
-OVERLEAF_NAV_TITLE=Overleaf Community Edition
-OVERLEAF_HEADER_IMAGE_URL=http://localhost:3000/img/ol-brand.svg
-OVERLEAF_ADMIN_EMAIL=admin@overleaf.com
-ENABLED_LINKED_FILE_TYPES=url,project_file
-ENABLE_CONVERSIONS=true
-EMAIL_CONFIRMATION_DISABLED=true
-EOF
-echo "${RELEASE}" >/opt/overleaf_version.txt
-msg_ok "Setup Overleaf"
-msg_info "Starting Overleaf"
-$STD ./bin/up
-msg_ok "Started Overleaf"
-msg_info "Creating Service"
+$STD install-tl-unx/install-tl -profile texlive.profile -repository "$TEXLIVE_MIRROR"
+export PATH="/usr/local/texlive/bin/x86_64-linux:$PATH"
+msg_ok "Installed TeXLive"
+
+# Download Overleaf CE
+msg_info "Cloning Overleaf CE"
+git clone -q https://github.com/overleaf/overleaf.git "$APP_DIR"
+cd "$APP_DIR"
+RELEASE=$(git describe --tags $(git rev-list --tags --max-count=1))
+echo "$RELEASE" >"$VERSION_FILE"
+msg_ok "Cloned Overleaf CE"
+
+# Build Overleaf
+msg_info "Installing Node Modules"
+pnpm install --frozen-lockfile --prefer-offline
+msg_ok "Installed Node Modules"
+
+msg_info "Building Overleaf"
+node genScript.js install | bash
+node genScript.js compile | bash
+msg_ok "Built Overleaf"
+
+# Configure Latexmk
+mkdir -p /usr/local/share/latexmk/LatexMk
+cp server-ce/config/latexmkrc /usr/local/share/latexmk/LatexMk
+
+# Configure nginx
+msg_info "Configuring nginx"
+cp server-ce/nginx/overleaf.conf /etc/nginx/sites-enabled/overleaf.conf
+rm -f /etc/nginx/sites-enabled/default
+cp server-ce/nginx/nginx.conf.template /etc/nginx/nginx.conf
+msg_ok "Configured nginx"
+
+# Environment Setup
+mkdir -p /etc/overleaf
+cp server-ce/config/settings.js /etc/overleaf/settings.js
+cp server-ce/config/env.sh /etc/overleaf/env.sh
+touch /etc/overleaf/site_status
+
+# Setup cron
+cp server-ce/config/crontab-* /etc/cron.d/
+chmod 600 /etc/cron.d/crontab-*
+
+# Setup logrotate
+cp server-ce/logrotate/overleaf /etc/logrotate.d/overleaf
+chmod 644 /etc/logrotate.d/overleaf
+
+# Setup systemd service
+msg_info "Creating systemd service"
 cat <<EOF >/etc/systemd/system/overleaf.service
 [Unit]
-Description=Overleaf Community Edition
-After=docker.service
-Requires=docker.service
+Description=Overleaf CE
+After=network.target mongod.service redis-server.service
+
 [Service]
-Type=oneshot
-RemainAfterExit=yes
-WorkingDirectory=/opt/overleaf/toolkit
-ExecStart=/opt/overleaf/toolkit/bin/up
-ExecStop=/opt/overleaf/toolkit/bin/stop
-TimeoutStartSec=0
+Type=simple
+Environment=OVERLEAF_CONFIG=/etc/overleaf/settings.js
+WorkingDirectory=${APP_DIR}
+ExecStart=$(which pnpm) start
+Restart=on-failure
+
 [Install]
 WantedBy=multi-user.target
 EOF
+
+systemctl daemon-reexec
 systemctl enable -q --now overleaf
-msg_ok "Created Service"
-motd_ssh
-customize
+msg_ok "Created and started systemd service"
+
+# Cleanup
 msg_info "Cleaning up"
+rm -rf "$TMP_DIR"
 $STD apt-get -y autoremove
 $STD apt-get -y autoclean
-msg_ok "Cleaned"
+msg_ok "Cleaned up"
+
+motd_ssh
+customize
+msg_ok "${APP} installation completed successfully!"
