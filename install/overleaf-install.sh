@@ -65,115 +65,115 @@ msg_info "Installing Node.js and pnpm"
 NODE_VERSION="22" NODE_MODULE="pnpm@latest" install_node_and_modules
 msg_ok "Installed Node.js and pnpm"
 
-# Install TeXLive basic
-msg_info "Installing TeXLive"
-cd "$TMP_DIR"
-mkdir -p install-tl-unx
+# # Install TeXLive basic
+# msg_info "Installing TeXLive"
+# cd "$TMP_DIR"
+# mkdir -p install-tl-unx
 
-wget -q https://tug.org/texlive/files/texlive.asc
-gpg --batch --yes --import texlive.asc
-rm texlive.asc
+# wget -q https://tug.org/texlive/files/texlive.asc
+# gpg --batch --yes --import texlive.asc
+# rm texlive.asc
 
-wget -q "${TEXLIVE_MIRROR}/install-tl-unx.tar.gz"
-wget -q "${TEXLIVE_MIRROR}/install-tl-unx.tar.gz.sha512"
-wget -q "${TEXLIVE_MIRROR}/install-tl-unx.tar.gz.sha512.asc"
+# wget -q "${TEXLIVE_MIRROR}/install-tl-unx.tar.gz"
+# wget -q "${TEXLIVE_MIRROR}/install-tl-unx.tar.gz.sha512"
+# wget -q "${TEXLIVE_MIRROR}/install-tl-unx.tar.gz.sha512.asc"
 
-gpg --verify install-tl-unx.tar.gz.sha512.asc
-sha512sum -c install-tl-unx.tar.gz.sha512
+# gpg --verify install-tl-unx.tar.gz.sha512.asc
+# sha512sum -c install-tl-unx.tar.gz.sha512
 
-tar -xzf install-tl-unx.tar.gz --strip-components=1 -C install-tl-unx
-rm -f install-tl-unx.tar.gz*
+# tar -xzf install-tl-unx.tar.gz --strip-components=1 -C install-tl-unx
+# rm -f install-tl-unx.tar.gz*
 
-cat <<EOF >install-tl-unx/texlive.profile
-selected_scheme scheme-basic
-tlpdbopt_autobackup 0
-tlpdbopt_install_docfiles 0
-tlpdbopt_install_srcfiles 0
-EOF
+# cat <<EOF >install-tl-unx/texlive.profile
+# selected_scheme scheme-basic
+# tlpdbopt_autobackup 0
+# tlpdbopt_install_docfiles 0
+# tlpdbopt_install_srcfiles 0
+# EOF
 
-$STD install-tl-unx/install-tl -profile install-tl-unx/texlive.profile -repository "$TEXLIVE_MIRROR"
+# $STD install-tl-unx/install-tl -profile install-tl-unx/texlive.profile -repository "$TEXLIVE_MIRROR"
 
-export PATH="/usr/local/texlive/bin/x86_64-linux:$PATH"
+# export PATH="/usr/local/texlive/bin/x86_64-linux:$PATH"
 
-$(find /usr/local/texlive -name tlmgr) path add
-tlmgr install --repository "$TEXLIVE_MIRROR" latexmk texcount synctex etoolbox xetex
-tlmgr path add
+# $(find /usr/local/texlive -name tlmgr) path add
+# tlmgr install --repository "$TEXLIVE_MIRROR" latexmk texcount synctex etoolbox xetex
+# tlmgr path add
 
-rm -rf install-tl-unx
-msg_ok "Installed TeXLive"
+# rm -rf install-tl-unx
+# msg_ok "Installed TeXLive"
 
-# Download Overleaf CE
-msg_info "Cloning Overleaf CE"
-git clone -q https://github.com/overleaf/overleaf.git "$APP_DIR"
-cd "$APP_DIR"
-RELEASE=$(git describe --tags $(git rev-list --tags --max-count=1))
-echo "$RELEASE" >"$VERSION_FILE"
-msg_ok "Cloned Overleaf CE"
+# # Download Overleaf CE
+# msg_info "Cloning Overleaf CE"
+# git clone -q https://github.com/overleaf/overleaf.git "$APP_DIR"
+# cd "$APP_DIR"
+# RELEASE=$(git describe --tags $(git rev-list --tags --max-count=1))
+# echo "$RELEASE" >"$VERSION_FILE"
+# msg_ok "Cloned Overleaf CE"
 
-# Build Overleaf
-msg_info "Installing Node Modules"
-pnpm install --frozen-lockfile --prefer-offline
-msg_ok "Installed Node Modules"
+# # Build Overleaf
+# msg_info "Installing Node Modules"
+# pnpm install --frozen-lockfile --prefer-offline
+# msg_ok "Installed Node Modules"
 
-msg_info "Building Overleaf"
-node genScript.js install | bash
-node genScript.js compile | bash
-msg_ok "Built Overleaf"
+# msg_info "Building Overleaf"
+# node genScript.js install | bash
+# node genScript.js compile | bash
+# msg_ok "Built Overleaf"
 
-# Configure Latexmk
-mkdir -p /usr/local/share/latexmk/LatexMk
-cp server-ce/config/latexmkrc /usr/local/share/latexmk/LatexMk
+# # Configure Latexmk
+# mkdir -p /usr/local/share/latexmk/LatexMk
+# cp server-ce/config/latexmkrc /usr/local/share/latexmk/LatexMk
 
-# Configure nginx
-msg_info "Configuring nginx"
-cp server-ce/nginx/overleaf.conf /etc/nginx/sites-enabled/overleaf.conf
-rm -f /etc/nginx/sites-enabled/default
-cp server-ce/nginx/nginx.conf.template /etc/nginx/nginx.conf
-msg_ok "Configured nginx"
+# # Configure nginx
+# msg_info "Configuring nginx"
+# cp server-ce/nginx/overleaf.conf /etc/nginx/sites-enabled/overleaf.conf
+# rm -f /etc/nginx/sites-enabled/default
+# cp server-ce/nginx/nginx.conf.template /etc/nginx/nginx.conf
+# msg_ok "Configured nginx"
 
-# Environment Setup
-mkdir -p /etc/overleaf
-cp server-ce/config/settings.js /etc/overleaf/settings.js
-cp server-ce/config/env.sh /etc/overleaf/env.sh
-touch /etc/overleaf/site_status
+# # Environment Setup
+# mkdir -p /etc/overleaf
+# cp server-ce/config/settings.js /etc/overleaf/settings.js
+# cp server-ce/config/env.sh /etc/overleaf/env.sh
+# touch /etc/overleaf/site_status
 
-# Setup cron
-cp server-ce/config/crontab-* /etc/cron.d/
-chmod 600 /etc/cron.d/crontab-*
+# # Setup cron
+# cp server-ce/config/crontab-* /etc/cron.d/
+# chmod 600 /etc/cron.d/crontab-*
 
-# Setup logrotate
-cp server-ce/logrotate/overleaf /etc/logrotate.d/overleaf
-chmod 644 /etc/logrotate.d/overleaf
+# # Setup logrotate
+# cp server-ce/logrotate/overleaf /etc/logrotate.d/overleaf
+# chmod 644 /etc/logrotate.d/overleaf
 
-# Setup systemd service
-msg_info "Creating systemd service"
-cat <<EOF >/etc/systemd/system/overleaf.service
-[Unit]
-Description=Overleaf CE
-After=network.target mongod.service redis-server.service
+# # Setup systemd service
+# msg_info "Creating systemd service"
+# cat <<EOF >/etc/systemd/system/overleaf.service
+# [Unit]
+# Description=Overleaf CE
+# After=network.target mongod.service redis-server.service
 
-[Service]
-Type=simple
-Environment=OVERLEAF_CONFIG=/etc/overleaf/settings.js
-WorkingDirectory=${APP_DIR}
-ExecStart=$(which pnpm) start
-Restart=on-failure
+# [Service]
+# Type=simple
+# Environment=OVERLEAF_CONFIG=/etc/overleaf/settings.js
+# WorkingDirectory=${APP_DIR}
+# ExecStart=$(which pnpm) start
+# Restart=on-failure
 
-[Install]
-WantedBy=multi-user.target
-EOF
+# [Install]
+# WantedBy=multi-user.target
+# EOF
 
-systemctl daemon-reexec
-systemctl enable -q --now overleaf
-msg_ok "Created and started systemd service"
+# systemctl daemon-reexec
+# systemctl enable -q --now overleaf
+# msg_ok "Created and started systemd service"
 
-# Cleanup
-msg_info "Cleaning up"
-rm -rf "$TMP_DIR"
-$STD apt-get -y autoremove
-$STD apt-get -y autoclean
-msg_ok "Cleaned up"
+# # Cleanup
+# msg_info "Cleaning up"
+# rm -rf "$TMP_DIR"
+# $STD apt-get -y autoremove
+# $STD apt-get -y autoclean
+# msg_ok "Cleaned up"
 
-motd_ssh
-customize
-msg_ok "${APP} installation completed successfully!"
+# motd_ssh
+# customize
+# msg_ok "${APP} installation completed successfully!"
