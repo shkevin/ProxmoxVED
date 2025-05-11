@@ -67,18 +67,39 @@ msg_ok "Installed Node.js and pnpm"
 
 # Install TeXLive basic
 msg_info "Installing TeXLive"
-TEXLIVE_MIRROR="https://mirror.ox.ac.uk/sites/ctan.org/systems/texlive/tlnet"
 cd "$TMP_DIR"
+mkdir -p install-tl-unx
+
+wget -q https://tug.org/texlive/files/texlive.asc
+gpg --batch --yes --import texlive.asc
+rm texlive.asc
+
 wget -q "${TEXLIVE_MIRROR}/install-tl-unx.tar.gz"
+wget -q "${TEXLIVE_MIRROR}/install-tl-unx.tar.gz.sha512"
+wget -q "${TEXLIVE_MIRROR}/install-tl-unx.tar.gz.sha512.asc"
+
+gpg --verify install-tl-unx.tar.gz.sha512.asc
+sha512sum -c install-tl-unx.tar.gz.sha512
+
 tar -xzf install-tl-unx.tar.gz --strip-components=1 -C install-tl-unx
-cat <<EOF >texlive.profile
+rm -f install-tl-unx.tar.gz*
+
+cat <<EOF >install-tl-unx/texlive.profile
 selected_scheme scheme-basic
 tlpdbopt_autobackup 0
 tlpdbopt_install_docfiles 0
 tlpdbopt_install_srcfiles 0
 EOF
-$STD install-tl-unx/install-tl -profile texlive.profile -repository "$TEXLIVE_MIRROR"
+
+$STD install-tl-unx/install-tl -profile install-tl-unx/texlive.profile -repository "$TEXLIVE_MIRROR"
+
 export PATH="/usr/local/texlive/bin/x86_64-linux:$PATH"
+
+$(find /usr/local/texlive -name tlmgr) path add
+tlmgr install --repository "$TEXLIVE_MIRROR" latexmk texcount synctex etoolbox xetex
+tlmgr path add
+
+rm -rf install-tl-unx
 msg_ok "Installed TeXLive"
 
 # Download Overleaf CE
